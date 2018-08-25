@@ -17,6 +17,7 @@
 (def ^:const test-port 5744)
 
 (def ^:dynamic *base-url* (str "http://127.0.0.1:" test-port "/"))
+;(def ^:dynamic *base-url* (str "http://localhost:3000/locations/464FvMG6t04s0cU05g9krVMw/hotels?brands[]=263&brands[]=272&brands[]=285&brands[]=516&checkIn=2018-08-16&checkOut=2018-08-17&guests=2&lat=35.72566235899431&lng=139.83065643139855&rooms=1&sort=distance-asc&zoom=9"))
 (def heroku-url "http://vast-brushlands-4998.herokuapp.com/")
 
 ;; Utilities
