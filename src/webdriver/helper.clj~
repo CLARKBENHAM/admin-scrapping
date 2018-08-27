@@ -11,6 +11,9 @@
            org.openqa.selenium.chrome.ChromeDriver))
 
 
+
+
+
 (def date-format (f/formatter "yyyy-MM-dd"))
 
 (defn min-vecs [q & rest]

@@ -1,5 +1,5 @@
-;;this file is just a hodge podge of functions which may prove useful
-(ns webdriver.scrape
+;;this file is just a hodge podge of functions which may prove useful for parsing infromation on roomkey.com
+(ns webdriver.parsing-roomkey
   (:require [clojure.string :as str]
             [clojure.tools.logging :as log]
             [clojure.tools.reader.edn :as edn]
@@ -67,7 +67,10 @@
    (find-elements-by @scrapper {:tag :a, :class "lead-link dd61811f"})))
 
 
-(println (concat  (map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper (by-xpath "//div[contains(@class, '_035e28b7 ') and contains(@class, ' false')]"))) (map #(text %) (core/find-elements @scrapper {:tag :div, :class "f0fd0ac8"}))))
+(println
+ (concat
+  (map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper (by-xpath "//div[contains(@class, '_035e28b7 ') and contains(@class, ' false')]")))
+  (map #(text %) (core/find-elements @scrapper {:tag :div, :class "f0fd0ac8"}))))
 
 
 (println (zipmap (map #(keyword (text %)) (core/find-elements-by @scrapper {:tag :div, :class "_0d5a0043"})) (concat  (map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper (by-xpath "//div[contains(@class, '_035e28b7 ') and contains(@class, ' false')]"))) (map #(text %) (core/find-elements @scrapper {:tag :div, :class "f0fd0ac8"})))))

@@ -11,6 +11,6 @@
   (:import org.openqa.selenium.remote.DesiredCapabilities
            org.openqa.selenium.chrome.ChromeDriver))
 
-;;tests need to be updated when on another laptop
+
 (fact "Can pass in a URL and check if other rates are lower than roomkey rates"
   (collection-rates-right? ["file:///Users/clarkbenham/startContent/admin-tool/clj-webdriver/resources/normal1.html" "file:///Users/clarkbenham/startContent/admin-tool/clj-webdriver/resources/normal2.html"]) => '(nil "file:///Users/clarkbenham/startContent/admin-tool/clj-webdriver/resources/normal2.html"))
