@@ -30,107 +30,6 @@
            [org.apache.log4j PropertyConfigurator]
            org.openqa.selenium.remote.DesiredCapabilities
            org.openqa.selenium.chrome.ChromeDriver))
-;;(to-array-2d [(mapv #(keyword (c/text %)) (c/find-elements-by @scrapper {:tag :div, :class "_0d5a0043"})) (concat (mapv #(Integer/parseInt  (re-find #"[0-9]+" (c/text %))) (c/find-elements-by @scrapper {:tag :div, :class "_035e28b7 _35e316dc false"})) (mapv #(c/text %) (c/find-elements @scrapper {:tag :div, :class "f0fd0ac8"})))])
-
-
-
-(def ^:dynamic *rmky-url* "http://localhost:3000/locations/464FvMG6t04s0cU05g9krVMw/hotels?brands[]=263&brands[]=272&brands[]=285&brands[]=516&checkIn=2018-08-16&checkOut=2018-08-17&guests=2&lat=35.72566235899431&lng=139.83065643139855&rooms=1&sort=distance-asc&zoom=9")
-
-;;Hotel links are of form https://www.roomkey.com/hotels/HOTEL_TID?checkIn=YYYY-MM-DD&checkOut=YYYY-MM-DD&currency=AZA&guests=#&rooms=#
-
-
-;;below only needs to be run twice (as long as caching is not disabled) 
-;;(def scrapper (atom (new-webdriver {:browser :chrome})))
-
-;; (to @scrapper *rmky-url*)
-;; (Thread/sleep 10000)
-;; (to @scrapper *rmky-url*);;not sure how to get repeat working, later
-
-;; ;;below for on the search results page
-
-
-
-
-;; (println (count (core/find-elements @scrapper {:tag :div, :class "_6cf13685"})));;number of hotels in search results
-
-;; (println (count (fixnd-elements @scrapper {:tag :div, :class "f0fd0ac8"})));; number of unavailible hotels
-
-;; (println "rmky rate: "(map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper {:tag :div, :class "_035e28b7 _35e316dc false"})));;roomkey only rates
-
-;; (println "others rate: " (map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper {:tag :div, :class "_035e28b7 "})));; other sites rates
-
-;; (println (map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper (by-xpath "//div[contains(@class, '_035e28b7 ') and contains(@class, ' false')]"))));;lowest rates for hotel
-
-;; (println (map #(keyword (text %)) (core/find-elements-by @scrapper {:tag :div, :class "_0d5a0043"})));;hotel names as keys
-
-;;  (map #(attribute % :data-rate-id) (find-elements-by @scrapper {:tag :a, :class "lead-link dd61811f"}));; gets the rate identifier
-
-
-;; (println (concat  (map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper (by-xpath "//div[contains(@class, '_035e28b7 ') and contains(@class, ' false')]"))) (map #(text %) (core/find-elements @scrapper {:tag :div, :class "f0fd0ac8"}))))
-
-;; (println (zipmap (map #(keyword (text %)) (core/find-elements-by @scrapper {:tag :div, :class "_0d5a0043"})) (concat  (map #(Integer/parseInt (re-find #"[0-9]+" (text %))) (find-elements-by @scrapper (by-xpath "//div[contains(@class, '_035e28b7 ') and contains(@class, ' false')]"))) (map #(text %) (core/find-elements @scrapper {:tag :div, :class "f0fd0ac8"})))))
-
-
-#_(defn parse-hotel-page
-  "Scrappes Rates and corresponding room information from roomkey.com"
-    [hotel-tid check-in check-out & [time]]
-  (let [crawler (atom (new-webdriver {:browser :chrome}))]
-    
-    (to @crawler (str "https://www.roomkey.com/hotels/" hotel-tid "?checkIn=" check-in "&checkOut=" check-out "&currency=USD&guests=2&rooms=1"))
-    
-    ;;checks if URL/hotel_tid is correct
-    (when (exists? (find-element @crawler {:tag :pre}))
-      (println "Webpage for hotel-tid " hotel-tid " " (text (find-element @crawler {:tag :pre})))
-      (throw
-       (Exception.
-        (str  "check hotel_tid. The url was:\n"
-              "https://www.roomkey.com/hotels/" hotel-tid "?checkIn=" check-in "&checkOut=" check-out "&currency=USD&guests=2&rooms=1")))) 
-
-    ;;waits till page is finished loading to begin parsing
-    (loop [n (re-find #"Loading Rooms & Rates"
-                      (text (find-element @crawler {:tag :section, :class "a7cec703"})))]
-      (when n
-        (do
-          (Thread/sleep 50)
-          (recur (re-find #"Loading Rooms & Rates"
-                          (text (find-element @crawler {:tag :section, :class "a7cec703"})))))))
-
-    ;;checks if bookings are availible at this time
-    (when
-        (re-find #"unavailable"
-                 (text (find-element @crawler {:tag :section, :class "a7cec703"})))
-      (throw
-       (Exception. "Booking Unavailible. Try refreshing page/changing date/increasing time")))
-
-    ;;clicks to show all rates only if button exists
-    (when
-        (exists?
-         (find-element @crawler {:tag :button, :class "_953e1efe"}))
-      (click (find-element @crawler {:tag :button, :class "_953e1efe"}))) 
-
-    (prn (map click (find-elements @crawler {:tag :button, :class "edfa26e3"})));;expands all room details
-;;#######################################################
-    (let [rate-id (mapv  #(attribute % :data-rate-id) (find-elements-by @crawler {:tag :a, :class "lead-link _823bb73c" })) ;;what will actually be matched on 
-          room-type (map #(first (str/split % #":")) rate-id)
-          rate-plan (map #(second (str/split % #":")) rate-id)
-          room-name (map text (find-elements-by @crawler {:tag :h4, :class "_93b07216"}))
-          other-rates (map
-                       #(re-find #"\d+" (text %))
-                       (find-elements-by @crawler {:tag :p, :class "_5783264d"}))
-          roomkey-rates (map
-                         #(re-find #"\d+" (text %))
-                         (find-elements-by @crawler {:tag :p, :class "bf25e4e9"}))
-          room-description (map
-                            #(str/replace (text %) #"\n" "   ")
-                            (find-elements-by @crawler {:tag :p, :class "_407ee109"}))]
-
-      (out
-       (conj
-        (map vector room-type rate-plan other-rates roomkey-rates room-name room-description)
-        ["room-type" "rate-plan" "other-rates" "roomkey-rates" "room-name" "room-description"])
-       (str "Hotel_" hotel-tid ".csv")))
-    (Thread/sleep 15000)
-    (quit @crawler)))
 
 
 (defn hotel-tid-rates-right? "takes in a  hotel_tid and returns it if the other rate is lower than the roomkey rate"
@@ -205,7 +104,7 @@
         (collection-rates-right? hotel-tids check-in check-out)))))
 
 
-(defn roomkey-rates-less?  "checks whether roomkey rates are less than or equal to the other rates on the website"
+(defn roomkey-rates-less?  "checks whether roomkey rates are less than or equal to the other rates on the website and returns all information for that hotel"
   [hotel-tid check-in check-out]
   (let [crawler (atom (new-webdriver {:browser :chrome}))]
 
@@ -259,16 +158,6 @@
                           section-names
                           rooms-per-section)] 
 
-
-      (println "cat-type" category-types)
-      (println "rm-types" room-type)
-      (println "rat-pl" rate-plan)
-      (println "o-r" other-rates)
-      (println "rm-r" roomkey-rates)
-      (println "name" room-name)
-      (println "description" room-description)
-
-      
       (if (every? true? roomkey-less)
         (do
           (out
@@ -307,21 +196,3 @@
       (Thread/sleep 1500)
       (quit @crawler)))) ;;always want to close selenium window just to be safe 
 
-
-
-;;######################For fetching 
-;; (defn flatten-maps [x]
-;;    (into {}
-;;    (map #(if (instance? clojure.lang.PersistentArrayMap  (get x (key %)))
-;;      (val %)
-;;      %) x))) ;;brings key bindings in map in map into first map; { a{b c}}->{a b c}
-
-;; (defn flatten-rates [x] (merge (let [[rmkey other] (get x :nightly_rate)] {:roomkey-rate rmkey, :other-sites-rate other}) (dissoc x :nightly_rate)));;brings rates from array to separate keys
-
-;; (defn flatten-arrays [tester] (reduce #(update %1 %2 (fn [x] (first x))) tester (into [] (remove nil? (map #(when (and (instance? clojure.lang.PersistentVector (get tester (key %))) (= 1 (count (val %)))) (key %)) tester)))));;flattens all values which are single length vectors
-
-;; (def process-fetch (comp flatten-maps flatten-rates flatten-arrays))
-
-;; (defn to-csv [x] (out (conj (map #(into [] (vals (process-fetch %))) (first (vals x))) (keys (process-fetch (first (first (vals x)))))) (str "Hotel_" (reduce #(str/replace-first %1  #"::" %2) (first (keys x)) ["_" ""]) ".csv")))
-
-;; (defn get-csv [x] (if (string? x) (to-csv (fetch [x])) (to-csv (fetch [(str x)]))))#_"will very likely not work with only an integer"
